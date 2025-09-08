@@ -1,0 +1,11 @@
+# Configurações base
+project:
+  name: "oxford III pet"
+  version: "1.0"
+
+device: "cuda"
+seed: 42
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

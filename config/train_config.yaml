@@ -1,0 +1,40 @@
+# Configurações de treino
+base: "base.yaml"
+
+data:
+  dataset_path: "./data"
+  batch_size: 32
+  shuffle: true
+  num_workers: 1
+  validation_split: 0.2
+
+model:
+  name: "DenseNet121"
+  input_size: 224
+  num_classes: 37
+  in_channels: 3
+  growth_rate: 32
+  compression: 0.5
+  pretrained: false
+
+training:
+  epochs: 2
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  momentum: 0.9
+  optimizer: "adam"
+  scheduler: "plateau"
+  step_size: 30
+  gamma: 0.1
+
+checkpoint:
+  save_dir: "./checkpoints"
+  save_freq: 10
+  save_best: true
+  save_last: true
+  resume: false
+  resume_path: ""
+
+output:
+  log_dir: "./logs"
+  tensorboard: true

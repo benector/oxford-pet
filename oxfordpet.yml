@@ -1,0 +1,19 @@
+name: oxfordpet-env
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pytorch
+  - torchvision
+  - torchaudio
+  - cudatoolkit=11.3
+  - numpy
+  - scikit-learn
+  - pillow
+  - pyyaml
+  - tensorboard
+  - pip
+  - pip:
+    - -r requirements.txt  # instala dependências adicionais do pip

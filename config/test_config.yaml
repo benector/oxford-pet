@@ -1,0 +1,23 @@
+model:
+  name: "DenseNet121"
+  checkpoint_path: "./checkpoints/DenseNet121_gr32_c0.5_lr1e-05_bs32_20250907_190534/best_model.pth"  # ou last_epoch.pth
+  num_classes: 37
+  input_size: 224
+  in_channels: 3
+  growth_rate: 32
+  compression: 0.5
+  pretrained: false
+
+data:
+  dataset_path: "./data"
+  dataset:
+    type: "OxfordPetDataset"
+  batch_size: 32
+  shuffle: false
+  num_workers: 1
+
+evaluation:
+  output_dir: "./results"
+  metrics: ["accuracy", "precision", "recall", "f1"]
+
+device: "cuda"
