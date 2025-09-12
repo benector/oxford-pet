@@ -38,7 +38,10 @@ def train_model(config_path):
     
     # Otimizador e scheduler
     optimizer = model.get_optimizer(model.parameters())
-    scheduler = model.get_scheduler(optimizer)
+    if config['training']['scheduler']:
+        scheduler = model.get_scheduler(optimizer)
+    else:
+        scheduler = None
     
     # Loss function
     criterion = nn.CrossEntropyLoss()
