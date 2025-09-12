@@ -1,6 +1,6 @@
 model:
   name: "DenseNet121"
-  checkpoint_path: "./checkpoints/DenseNet121_gr32_ep40_lr0.0001_bs8_20250912_013255/best_model.pth"  # ou last_epoch.pth
+  checkpoint_path: "./checkpoints3/DenseNet121_gr32_ep60_lr0.0001_bs40_20250910_193912/best_model.pth"  # ou last_epoch.pth
   num_classes: 37
   input_size: 224
   in_channels: 3

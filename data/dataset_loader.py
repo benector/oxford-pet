@@ -79,6 +79,7 @@ def get_test_loader(config):
     """Cria DataLoader para teste"""
     dataset = OxfordPetDataset(
         root=config['data']['dataset_path'],
+	split = "test",
         transform=get_transforms(config, is_train=False)
     )
     
