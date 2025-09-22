@@ -1,0 +1,25 @@
+data:
+  batch_size: 32
+  dataset:
+    type: OxfordPetDataset
+  dataset_path: ./data
+  num_workers: 1
+  shuffle: false
+device: cuda
+evaluation:
+  metrics:
+  - accuracy
+  - precision
+  - recall
+  - f1
+  output_dir: ./results
+model:
+  checkpoint_path: ./checkpoints/DenseNet121_gr32_ep150_lr0.0001_bs8_20250921_151353/best_model.pth
+  compression: 0.5
+  growth_rate: 32
+  in_channels: 3
+  input_size: 224
+  name: DenseNet121
+  num_classes: 37
+  pretrained: false
+  use_separable: false

@@ -43,10 +43,14 @@ def get_data_loaders(config):
     
     return train_loader, val_loader
 
-def stratified_split(dataset, val_ratio=0.2, samples_per_class=None):
+def stratified_split(dataset, val_ratio=0.2, samples_per_class=None, seed=42):
     """
     Split estratificado que garante balanceamento de classes
+    e gera sempre os mesmos conjuntos se a semente for fixa.
     """
+    # Fixar semente para reprodutibilidade
+    np.random.seed(seed)
+    
     # Organiza amostras por classe
     class_indices = defaultdict(list)
     for idx in range(len(dataset)):
@@ -58,18 +62,15 @@ def stratified_split(dataset, val_ratio=0.2, samples_per_class=None):
     
     for class_label, indices in class_indices.items():
         n_val = samples_per_class if samples_per_class else int(len(indices) * val_ratio)
+        n_val = min(n_val, len(indices) - 1)  # garante pelo menos 1 amostra no treino
         
-        # Garante que não tira mais do que existe
-        n_val = min(n_val, len(indices) - 1)  # Pelo menos 1 amostra no treino
-        
-        # Embaralha as amostras da classe
+        # Embaralha amostras da classe com semente fixa
         np.random.shuffle(indices)
         
-        # Separa validação
         val_indices.extend(indices[:n_val])
         train_indices.extend(indices[n_val:])
     
-    # Embaralha os índices finais
+    # Embaralha os índices finais com semente fixa
     np.random.shuffle(train_indices)
     np.random.shuffle(val_indices)
     

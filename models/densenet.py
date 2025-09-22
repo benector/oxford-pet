@@ -3,23 +3,51 @@ import torch.nn as nn
 from .base_model import BaseModel
 
 
+# ===============================
+# Depthwise Separable Convolution
+# ===============================
+class DepthwiseSeparableConv(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, dilation=1):
+        super().__init__()
+        padding = dilation if kernel_size == 3 else 0
+        self.depthwise = nn.Conv2d(
+            in_channels, in_channels,
+            kernel_size=kernel_size, stride=stride,
+            padding=padding, dilation=dilation,
+            groups=in_channels, bias=False
+        )
+        self.pointwise = nn.Conv2d(
+            in_channels, out_channels,
+            kernel_size=1, bias=False
+        )
+
+    def forward(self, x):
+        return self.pointwise(self.depthwise(x))
+
 
 # ===============================
-# DenseNet building blocks
+# BN + ReLU + Conv (normal ou separável)
 # ===============================
 class BN_ReLU_Conv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1):
+    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, dilation=1, use_separable=False):
         super().__init__()
         self.bn = nn.BatchNorm2d(in_channels)
         self.relu = nn.ReLU(inplace=True)
-        self.conv = nn.Conv2d(
-            in_channels, out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=kernel_size // 2,
-            bias=False
-        )
-        
+
+        if use_separable and kernel_size == 3:
+            self.conv = DepthwiseSeparableConv(
+                in_channels, out_channels,
+                kernel_size=3, stride=stride, dilation=dilation
+            )
+        else:
+            self.conv = nn.Conv2d(
+                in_channels, out_channels,
+                kernel_size=kernel_size, stride=stride,
+                padding=dilation if kernel_size == 3 else 0,
+                dilation=dilation,
+                bias=False
+            )
+
     def forward(self, x):
         x = self.bn(x)
         x = self.relu(x)
@@ -27,15 +55,21 @@ class BN_ReLU_Conv(nn.Module):
         return x
 
 
+# ===============================
+# Dense Block
+# ===============================
 class DenseBlock(nn.Module):
-    def __init__(self, in_channels, growth_rate, num_layers):
+    def __init__(self, in_channels, growth_rate, num_layers, use_separable=False, dilation=1):
         super().__init__()
         self.layers = nn.ModuleList()
         for _ in range(num_layers):
             self.layers.append(
                 nn.Sequential(
-                    BN_ReLU_Conv(in_channels, 4 * growth_rate),   # bottleneck
-                    BN_ReLU_Conv(4 * growth_rate, growth_rate, kernel_size=3)
+                    # Bottleneck 1x1
+                    BN_ReLU_Conv(in_channels, 4 * growth_rate, kernel_size=1, use_separable=use_separable),
+                    # 3x3 conv (separável/dilatada se configurado)
+                    BN_ReLU_Conv(4 * growth_rate, growth_rate, kernel_size=3,
+                                 dilation=dilation, use_separable=use_separable)
                 )
             )
             in_channels += growth_rate
@@ -49,11 +83,14 @@ class DenseBlock(nn.Module):
         return torch.cat(features, 1)
 
 
+# ===============================
+# Transition Layer
+# ===============================
 class TransitionLayer(nn.Module):
-    def __init__(self, in_channels):
+    def __init__(self, in_channels, use_separable=False):
         super().__init__()
         out_channels = in_channels // 2
-        self.bn_relu_conv = BN_ReLU_Conv(in_channels, out_channels)
+        self.bn_relu_conv = BN_ReLU_Conv(in_channels, out_channels, kernel_size=1, use_separable=use_separable)
         self.pool = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)
 
     def forward(self, x):
@@ -70,7 +107,11 @@ class DenseNet121(BaseModel):
         super().__init__(config)
         input_channels = config['model']['in_channels']
         num_classes = config['model']['num_classes']
-        growth_rate = config['model']['growth_rate'] 
+        growth_rate = config['model']['growth_rate']
+
+        # novas opções vindas do config.json
+        self.use_separable = config['model'].get('use_separable', False)
+        self.dilation = config['model'].get('dilation', 1)
 
         # camada inicial
         self.conv1 = nn.Conv2d(input_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
@@ -82,11 +123,13 @@ class DenseNet121(BaseModel):
 
         self.blocks = nn.ModuleList()
         for i, layers in enumerate(num_layers):
-            block = DenseBlock(in_channels, growth_rate, layers)
+            block = DenseBlock(in_channels, growth_rate, layers,
+                               use_separable=self.use_separable,
+                               dilation=self.dilation)
             self.blocks.append(block)
             in_channels = block.out_channels
             if i != len(num_layers) - 1:
-                trans = TransitionLayer(in_channels)
+                trans = TransitionLayer(in_channels, use_separable=self.use_separable)
                 self.blocks.append(trans)
                 in_channels = in_channels // 2
 
@@ -109,7 +152,7 @@ class DenseNet121(BaseModel):
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
-    
+
 
 # ===============================
 # Factory

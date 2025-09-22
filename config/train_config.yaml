@@ -3,7 +3,7 @@ base: "base.yaml"
 
 data:
   dataset_path: "./data"
-  batch_size: 40
+  batch_size: 8
   shuffle: true
   num_workers: 1
   validation_split: 0.2
@@ -16,12 +16,14 @@ model:
   growth_rate: 32
   compression: 0.5
   pretrained: false
+  use_separable: True
+  dilatation: 1
 
 training:
-  epochs: 60
-  learning_rate: 0.1
-  weight_decay: 0.0001
-  momentum: 0.9
+  epochs: 150
+  learning_rate: 0.0001
+  weight_decay: false
+  momentum: false
   optimizer: "adam"
   scheduler: False
   step_size: 30

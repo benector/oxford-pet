@@ -132,14 +132,14 @@ def train_model(config_path):
                 'config': config
             }, Path(config['checkpoint']['save_dir']) / 'last_epoch.pth')
 
-        if (epoch + 1) % config['checkpoint']['save_freq'] == 0:
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'val_acc': val_acc,
-                'config': config
-            }, Path(config['checkpoint']['save_dir']) / f'epoch_{epoch+1}.pth')
+#        if (epoch + 1) % config['checkpoint']['save_freq'] == 0:
+#            torch.save({
+#                'epoch': epoch,
+#                'model_state_dict': model.state_dict(),
+#                'optimizer_state_dict': optimizer.state_dict(),
+#                'val_acc': val_acc,
+#                'config': config
+#            }, Path(config['checkpoint']['save_dir']) / f'epoch_{epoch+1}.pth')
            
     total_time = time.time() - start_time
     metrics_logger.save_final_metrics(

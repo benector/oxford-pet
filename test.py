@@ -15,18 +15,17 @@ def test_model(config_path, train_config):
     train_config = load_config(train_config)
     device = setup_device(config)
     
-    # Carrega dados de teste
+    # Carrega dados de teste (usa os mesmos transforms do treino)
     test_loader = get_test_loader(config)
     print(f"Dataset de teste carregado: {len(test_loader.dataset)} amostras")
     
-    # Carrega modelo
+    # Carrega modelo (usa a DenseNet modificada se configurada)
     model = get_model(config).to(device)
     
-    # Carrega weights do checkpoint
+    # Carrega checkpoint
     checkpoint_path = config['model']['checkpoint_path']
     checkpoint = torch.load(checkpoint_path, map_location=device)
     
-    # ✅ VERIFICA TIPO DE CHECKPOINT
     if isinstance(checkpoint, dict) and 'model_state_dict' in checkpoint:
         model.load_state_dict(checkpoint['model_state_dict'])
         print(f"✅ Checkpoint carregado: {checkpoint_path}")
@@ -38,11 +37,9 @@ def test_model(config_path, train_config):
         model.load_state_dict(checkpoint)
         print(f"✅ State_dict carregado: {checkpoint_path}")
     
-    # Teste
+    # Avaliação
     model.eval()
-    all_preds = []
-    all_targets = []
-    all_probabilities = [] 
+    all_preds, all_targets, all_probabilities = [], [], []
     
     with torch.no_grad():
         for data, target in test_loader:
@@ -54,7 +51,7 @@ def test_model(config_path, train_config):
             all_targets.extend(target.cpu().numpy())
             all_probabilities.extend(torch.softmax(output, dim=1).cpu().numpy())
     
-    # Calcula métricas
+    # Métricas principais
     accuracy = accuracy_score(all_targets, all_preds)
     precision = precision_score(all_targets, all_preds, average='weighted', zero_division=0)
     recall = recall_score(all_targets, all_preds, average='weighted', zero_division=0)
@@ -66,17 +63,16 @@ def test_model(config_path, train_config):
     print(f"✅ Recall: {recall:.4f}")
     print(f"✅ F1-Score: {f1:.4f}")
     
-    #RELATÓRIO DETALHADO POR CLASSE
     print("\n📈 Relatório por classe:")
     print(classification_report(all_targets, all_preds, zero_division=0))
     
-    # Salva resultados
-    output_dir = Path(setup_results_dir(config,train_config))
+    # Salvar resultados
+    output_dir = Path(setup_results_dir(config, train_config))
     output_dir.mkdir(exist_ok=True)
     
-    #SALVA EM JSON
     results = {
         "dataset": config['data']['dataset']['type'],
+        "model": config['model']['name'],  # salva nome do modelo usado
         "checkpoint_used": checkpoint_path,
         "num_samples": len(test_loader.dataset),
         "metrics": {
@@ -92,11 +88,11 @@ def test_model(config_path, train_config):
     with open(results_json, 'w') as f:
         json.dump(results, f, indent=2)
     
-    # SALVA RELATÓRIO EM TEXTO
     with open(output_dir / 'test_report.txt', 'w') as f:
         f.write("Test Results\n")
         f.write("============\n\n")
         f.write(f"Dataset: {config['data']['dataset']['type']}\n")
+        f.write(f"Modelo: {config['model']['name']}\n")
         f.write(f"Checkpoint: {checkpoint_path}\n")
         f.write(f"Número de amostras: {len(test_loader.dataset)}\n\n")
         f.write(f"Accuracy: {accuracy:.4f}\n")
@@ -109,11 +105,8 @@ def test_model(config_path, train_config):
     print(f"💾 Resultados salvos em: {output_dir}/")
 
     with open(output_dir / "predictions.txt", "w") as f:
-        # cabeçalho opcional
         f.write("target pred probs\n")
-    
         for t, p, probs in zip(all_targets, all_preds, all_probabilities):
-            # transforma as probabilidades em string separada por vírgula
             probs_str = ",".join([f"{prob:.4f}" for prob in probs])
             f.write(f"{t} {p} {probs_str}\n")
 
