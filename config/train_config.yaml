@@ -16,13 +16,16 @@ model:
   growth_rate: 32
   compression: 0.5
   pretrained: false
-  use_separable: True
+  use_separable: false
   dilatation: 1
+  dropout_p: 0.2
+  dropout_dblock: 0.0
+  dropout_transition: 0.1
 
 training:
   epochs: 150
   learning_rate: 0.0001
-  weight_decay: false
+  weight_decay: 0.001
   momentum: false
   optimizer: "adam"
   scheduler: False

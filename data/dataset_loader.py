@@ -101,14 +101,14 @@ def get_transforms(config, is_train=True):
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(10),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                               std=[0.229, 0.224, 0.225])
+#            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+#                               std=[0.229, 0.224, 0.225])
         ])
     else:
         return transforms.Compose([
             transforms.Resize((config['model']['input_size'], 
                              config['model']['input_size'])),
             transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                               std=[0.229, 0.224, 0.225])
+#            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+#                               std=[0.229, 0.224, 0.225])
         ])

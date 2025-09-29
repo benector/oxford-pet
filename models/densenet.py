@@ -33,6 +33,7 @@ class BN_ReLU_Conv(nn.Module):
         super().__init__()
         self.bn = nn.BatchNorm2d(in_channels)
         self.relu = nn.ReLU(inplace=True)
+#        self.dropout2d = nn.Dropout2d(p)
 
         if use_separable and kernel_size == 3:
             self.conv = DepthwiseSeparableConv(
@@ -52,6 +53,7 @@ class BN_ReLU_Conv(nn.Module):
         x = self.bn(x)
         x = self.relu(x)
         x = self.conv(x)
+ #       x = self.dropout2d(x)
         return x
 
 
@@ -87,14 +89,16 @@ class DenseBlock(nn.Module):
 # Transition Layer
 # ===============================
 class TransitionLayer(nn.Module):
-    def __init__(self, in_channels, use_separable=False):
+    def __init__(self, in_channels, use_separable=False, p=0.0):
         super().__init__()
         out_channels = in_channels // 2
         self.bn_relu_conv = BN_ReLU_Conv(in_channels, out_channels, kernel_size=1, use_separable=use_separable)
         self.pool = nn.AvgPool2d(kernel_size=2, stride=2, padding=0)
+        self.dropout2d = nn.Dropout2d(p)
 
     def forward(self, x):
         x = self.bn_relu_conv(x)
+        x = self.dropout2d(x)
         x = self.pool(x)
         return x
 
@@ -108,6 +112,9 @@ class DenseNet121(BaseModel):
         input_channels = config['model']['in_channels']
         num_classes = config['model']['num_classes']
         growth_rate = config['model']['growth_rate']
+        dropout_p = config["model"]["dropout_p"]
+        dropout_dblock = config["model"]["dropout_dblock"]
+        dropout_transition = config["model"]["dropout_transition"]
 
         # novas opções vindas do config.json
         self.use_separable = config['model'].get('use_separable', False)
@@ -129,7 +136,7 @@ class DenseNet121(BaseModel):
             self.blocks.append(block)
             in_channels = block.out_channels
             if i != len(num_layers) - 1:
-                trans = TransitionLayer(in_channels, use_separable=self.use_separable)
+                trans = TransitionLayer(in_channels, use_separable=self.use_separable, p=dropout_transition)
                 self.blocks.append(trans)
                 in_channels = in_channels // 2
 
@@ -137,6 +144,7 @@ class DenseNet121(BaseModel):
         self.bn = nn.BatchNorm2d(in_channels)
         self.relu = nn.ReLU(inplace=True)
         self.global_pool = nn.AdaptiveAvgPool2d((1, 1))
+        self.dropout = nn.Dropout(p=dropout_p)
         self.fc = nn.Linear(in_channels, num_classes)
 
     def forward(self, x):
@@ -150,6 +158,7 @@ class DenseNet121(BaseModel):
         x = self.relu(x)
         x = self.global_pool(x)
         x = torch.flatten(x, 1)
+        x = self.dropout(x)
         x = self.fc(x)
         return x
 
