@@ -1,6 +1,6 @@
 model:
   name: "DenseNet121"
-  checkpoint_path: "./checkpoints/DenseNet121_gr32_ep150_lr0.0001_bs8_20251004_134232/best_model.pth"  # ou last_epoch.pth
+  checkpoint_path: "./checkpoints/DenseNet121_gr32_ep200_lr0.0001_bs8_20251005_134020/best_model.pth"  # ou last_epoch.pth
   num_classes: 37
   input_size: 224
   in_channels: 3
@@ -11,6 +11,11 @@ model:
   dropout_p: 0.2
   dropout_transition: 0.1
   dropout_dblock: 0.0
+  channel_attention: false
+  spatial_attention: true
+  block_attention: true
+  trans_attention: false  # opções: "channel", "spatial", None
+  global_attention: false
 data:
   dataset_path: "./data"
   dataset:

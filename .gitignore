@@ -6,6 +6,7 @@ checkpoints3/
 checkpoints4/
 logs/
 functions/
+results2/
 
 # Arquivos grandes e temporários
 *.pth

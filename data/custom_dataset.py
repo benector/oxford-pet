@@ -46,7 +46,10 @@ class OxfordPetDataset(Dataset):
         list_file = os.path.join(root, "annotations", split_file)
 
         with open(list_file, "r") as f:
-            lines = f.readlines()[6:]  # pula cabeçalho
+            if split=="train":
+                lines = f.readlines()[6:]  # pula cabeçalho
+            else:
+                lines = f.readlines()
 
             for line in lines:
                 #print('line:', line)

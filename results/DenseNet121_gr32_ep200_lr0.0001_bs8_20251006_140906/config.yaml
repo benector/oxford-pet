@@ -1,0 +1,42 @@
+data:
+  batch_size: 32
+  dataset:
+    type: OxfordPetDataset
+  dataset_path: ./data
+  normalization:
+    mean:
+    - 0.4781
+    - 0.4458
+    - 0.3957
+    std:
+    - 0.2626
+    - 0.2572
+    - 0.2653
+  num_workers: 1
+  shuffle: false
+device: cuda
+evaluation:
+  metrics:
+  - accuracy
+  - precision
+  - recall
+  - f1
+  output_dir: ./results
+model:
+  block_attention: false
+  channel_attention: true
+  checkpoint_path: ./checkpoints/DenseNet121_gr32_ep200_lr0.0001_bs8_20251006_111753/best_model.pth
+  compression: 0.5
+  dropout_dblock: 0.0
+  dropout_p: 0.2
+  dropout_transition: 0.1
+  global_attention: false
+  growth_rate: 32
+  in_channels: 3
+  input_size: 224
+  name: DenseNet121
+  num_classes: 37
+  pretrained: false
+  spatial_attention: false
+  trans_attention: true
+  use_separable: false

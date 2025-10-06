@@ -207,7 +207,9 @@ class DenseNet121(BaseModel):
         # 🔹 Atenção após o DenseBlock (se configurado)
             if self.block_attention:
                 if self.use_channel_attention and self.use_spatial_attention:
-                    self.blocks.append(ChannelSpatialAttention(in_channels))
+                      self.blocks.append(ChannelSpatialAttention(in_channels))
+#                     self.blocks.append(ChannelAttention(in_channels))
+#                     self.blocks.append(SpatialAttention())
                 elif self.use_channel_attention:
                     self.blocks.append(ChannelAttention(in_channels))
                 elif self.use_spatial_attention:
@@ -223,9 +225,11 @@ class DenseNet121(BaseModel):
 
             # 🔹 Atenção após a transição (se configurado)
                 if self.trans_attention:
-#                    if self.use_channel_attention and self.use_spatial_attention:
-#                        self.blocks.append(ChannelSpatialAttention(in_channels))
-                    if self.use_channel_attention:
+                    if self.use_channel_attention and self.use_spatial_attention:
+                        self.blocks.append(ChannelSpatialAttention(in_channels))
+#                        self.blocks.append(ChannelAttention(in_channels))
+#                        self.blocks.append(SpatialAttention())
+                    elif self.use_channel_attention:
                         self.blocks.append(ChannelAttention(in_channels))
                     elif self.use_spatial_attention:
                         self.blocks.append(SpatialAttention())
