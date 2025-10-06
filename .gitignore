@@ -1,9 +1,9 @@
 # Dados e checkpoints
 data/images
 data/annotations
-checkpoints/
 checkcpoints2/
 checkpoints3/
+checkpoints4/
 logs/
 functions/
 

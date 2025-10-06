@@ -7,20 +7,32 @@ from collections import defaultdict
 
 def get_data_loaders(config):
     """Cria DataLoaders com validação balanceada por classes"""
-    dataset = OxfordPetDataset(
-        root=config['data']['dataset_path'],
-        transform=get_transforms(config, is_train=True)
-    )
-    
-    # Split estratificado (balanceado por classe)
+    full_dataset = OxfordPetDataset(root=config['data']['dataset_path'], transform=None)
+
+    # Split estratificado
     train_indices, val_indices = stratified_split(
-        dataset, 
+        full_dataset, 
         val_ratio=config['data']['validation_split'],
-        samples_per_class=19  # 19 imagens por classe para validação
+        samples_per_class=19
     )
-    
-    train_dataset = Subset(dataset, train_indices)
-    val_dataset = Subset(dataset, val_indices)
+
+    # Dataset de treino com transformações (augmentation + normalização)
+    train_dataset = Subset(
+        OxfordPetDataset(
+            root=config['data']['dataset_path'],
+            transform=get_transforms(config, is_train=True)
+        ),
+        train_indices
+    )
+
+    # Dataset de validação apenas com normalização
+    val_dataset = Subset(
+        OxfordPetDataset(
+            root=config['data']['dataset_path'],
+            transform=get_transforms(config, is_train=False)
+        ),
+        val_indices
+    )
     
     print(f"📊 Dataset balanceado:")
     print(f"   Treino: {len(train_dataset)} amostras")
@@ -93,22 +105,26 @@ def get_test_loader(config):
     
     return test_loader
 
-def get_transforms(config, is_train=True):    
+def get_transforms(config, is_train=True):
+    input_size = config['model']['input_size']
+
+    mean = config['data']['normalization'].get('mean', [0.485, 0.456, 0.406])
+    std  = config['data']['normalization'].get('std',  [0.229, 0.224, 0.225])
+
     if is_train:
-        return transforms.Compose([
-            transforms.Resize((config['model']['input_size'], 
-                             config['model']['input_size'])),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(10),
+        aug_list = [
+            transforms.Resize((input_size, input_size)),
+            transforms.RandomResizedCrop(input_size, scale=(0.8, 1.0)),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomRotation(degrees=10),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.02),
             transforms.ToTensor(),
-#            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-#                               std=[0.229, 0.224, 0.225])
-        ])
+            transforms.Normalize(mean=mean, std=std),
+        ]
+        return transforms.Compose(aug_list)
     else:
         return transforms.Compose([
-            transforms.Resize((config['model']['input_size'], 
-                             config['model']['input_size'])),
+            transforms.Resize((input_size, input_size)),
             transforms.ToTensor(),
-#            transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-#                               std=[0.229, 0.224, 0.225])
+            transforms.Normalize(mean=mean, std=std)
         ])

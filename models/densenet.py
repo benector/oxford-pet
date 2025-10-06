@@ -1,6 +1,55 @@
 import torch
 import torch.nn as nn
 from .base_model import BaseModel
+import torch.nn.functional as F  # ✅ importa o módulo funcional
+
+
+# ===============================
+# Atenção por Canal
+# ===============================
+class ChannelAttention(nn.Module):
+    def __init__(self, in_channels, reduction=16):
+        super().__init__()
+        self.fc1 = nn.Linear(in_channels, in_channels // reduction, bias=False)
+        self.fc2 = nn.Linear(in_channels // reduction, in_channels, bias=False)
+
+    def forward(self, x):
+        b, c, h, w = x.size()
+        y = torch.mean(x, dim=(2, 3))  # Global Average Pooling
+        y = F.relu(self.fc1(y))
+        y = torch.sigmoid(self.fc2(y)).view(b, c, 1, 1)
+        return x * y.expand_as(x)
+
+# ===============================
+# Atenção Espacial
+# ===============================
+class SpatialAttention(nn.Module):
+    def __init__(self, kernel_size=7):
+        super().__init__()
+        padding = (kernel_size - 1) // 2
+        self.conv = nn.Conv2d(2, 1, kernel_size=kernel_size, padding=padding, bias=False)
+
+    def forward(self, x):
+        avg_out = torch.mean(x, dim=1, keepdim=True)
+        max_out, _ = torch.max(x, dim=1, keepdim=True)
+        y = torch.cat([avg_out, max_out], dim=1)
+        y = torch.sigmoid(self.conv(y))
+        return x * y
+
+
+
+# ===============================
+# Atenção Combinada
+# ===============================
+class ChannelSpatialAttention(nn.Module):
+    def __init__(self, in_channels):
+        super().__init__()
+        self.channel = ChannelAttention(in_channels)
+        self.spatial = SpatialAttention()
+    def forward(self, x):
+        x = self.channel(x)
+        x = self.spatial(x)
+        return x
 
 
 # ===============================
@@ -120,6 +169,24 @@ class DenseNet121(BaseModel):
         self.use_separable = config['model'].get('use_separable', False)
         self.dilation = config['model'].get('dilation', 1)
 
+        #atençao opcional
+        self.use_channel_attention = config['model'].get('channel_attention', False)
+        self.use_spatial_attention = config['model'].get('spatial_attention', False)
+        self.trans_attention = config['model'].get('trans_attention', False)
+        self.block_attention = config['model'].get('block_attention', False)
+        self.global_attention = config['model'].get('global_attention', False)
+
+
+
+        print("\n===== ESTADO DAS ATENÇÕES =====")
+        print(f"→ Channel Attention:   {'✅ ATIVADA' if self.use_channel_attention else '❌ DESATIVADA'}")
+        print(f"→ Spatial Attention:   {'✅ ATIVADA' if self.use_spatial_attention else '❌ DESATIVADA'}")
+        print(f"→ Block Attention:     {'✅ ATIVADA' if self.block_attention else '❌ DESATIVADA'}")
+        print(f"→ Transition Attention:{'✅ ATIVADA' if self.trans_attention else '❌ DESATIVADA'}")
+        print(f"→ Global Attention:    {'✅ ATIVADA' if self.global_attention else '❌ DESATIVADA'}")
+        print("================================\n")
+
+
         # camada inicial
         self.conv1 = nn.Conv2d(input_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -130,15 +197,38 @@ class DenseNet121(BaseModel):
 
         self.blocks = nn.ModuleList()
         for i, layers in enumerate(num_layers):
+        # Cria DenseBlock
             block = DenseBlock(in_channels, growth_rate, layers,
-                               use_separable=self.use_separable,
-                               dilation=self.dilation)
+                        use_separable=self.use_separable,
+                        dilation=self.dilation)
             self.blocks.append(block)
             in_channels = block.out_channels
+
+        # 🔹 Atenção após o DenseBlock (se configurado)
+            if self.block_attention:
+                if self.use_channel_attention and self.use_spatial_attention:
+                    self.blocks.append(ChannelSpatialAttention(in_channels))
+                elif self.use_channel_attention:
+                    self.blocks.append(ChannelAttention(in_channels))
+                elif self.use_spatial_attention:
+                    self.blocks.append(SpatialAttention())
+
+        # 🔹 Cria camada de transição (exceto após o último bloco)
             if i != len(num_layers) - 1:
-                trans = TransitionLayer(in_channels, use_separable=self.use_separable, p=dropout_transition)
+                trans = TransitionLayer(in_channels,
+                                    use_separable=self.use_separable,
+                                    p=dropout_transition)
                 self.blocks.append(trans)
                 in_channels = in_channels // 2
+
+            # 🔹 Atenção após a transição (se configurado)
+                if self.trans_attention:
+#                    if self.use_channel_attention and self.use_spatial_attention:
+#                        self.blocks.append(ChannelSpatialAttention(in_channels))
+                    if self.use_channel_attention:
+                        self.blocks.append(ChannelAttention(in_channels))
+                    elif self.use_spatial_attention:
+                        self.blocks.append(SpatialAttention())
 
         # camada final
         self.bn = nn.BatchNorm2d(in_channels)
@@ -146,6 +236,8 @@ class DenseNet121(BaseModel):
         self.global_pool = nn.AdaptiveAvgPool2d((1, 1))
         self.dropout = nn.Dropout(p=dropout_p)
         self.fc = nn.Linear(in_channels, num_classes)
+        self.global_att = ChannelAttention(in_channels) if self.global_attention else None
+
 
     def forward(self, x):
         x = self.conv1(x)
@@ -156,6 +248,8 @@ class DenseNet121(BaseModel):
 
         x = self.bn(x)
         x = self.relu(x)
+        if self.global_att is not None:
+            x = self.global_att(x)
         x = self.global_pool(x)
         x = torch.flatten(x, 1)
         x = self.dropout(x)

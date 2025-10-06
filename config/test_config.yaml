@@ -1,6 +1,6 @@
 model:
   name: "DenseNet121"
-  checkpoint_path: "./checkpoints/DenseNet121_gr32_ep150_lr0.0001_bs8_20250929_111231/best_model.pth"  # ou last_epoch.pth
+  checkpoint_path: "./checkpoints/DenseNet121_gr32_ep150_lr0.0001_bs8_20251004_134232/best_model.pth"  # ou last_epoch.pth
   num_classes: 37
   input_size: 224
   in_channels: 3
@@ -18,6 +18,9 @@ data:
   batch_size: 32
   shuffle: false
   num_workers: 1
+  normalization:
+    mean: [0.4781, 0.4458, 0.3957]
+    std: [0.2626, 0.2572, 0.2653]
 
 evaluation:
   output_dir: "./results"

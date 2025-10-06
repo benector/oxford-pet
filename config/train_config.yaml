@@ -7,6 +7,9 @@ data:
   shuffle: true
   num_workers: 1
   validation_split: 0.2
+  normalization:
+   mean: [0.4781, 0.4458, 0.3957]
+   std: [0.2626, 0.2572, 0.2653]
 
 model:
   name: "DenseNet121"
@@ -21,6 +24,12 @@ model:
   dropout_p: 0.2
   dropout_dblock: 0.0
   dropout_transition: 0.1
+  channel_attention: true
+  spatial_attention: true
+  block_attention: true
+  trans_attention: true   # opções: "channel", "spatial", None
+  global_attention: false
+
 
 training:
   epochs: 150
